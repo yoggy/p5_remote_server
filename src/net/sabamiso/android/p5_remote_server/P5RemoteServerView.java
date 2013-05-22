@@ -17,13 +17,13 @@ import android.view.View;
 import android.widget.Toast;
 
 public class P5RemoteServerView extends View implements
-		RemoteServerUpdateBitmapListener {
+		RemoteServerUpdateBitmapListener , Runnable {
 	RemoteServerTiny remote_server;
 	private Bitmap bitmap;
 
 	Paint p_default;
-	Paint p_text_white;
-	Paint p_text_black;
+	Paint p_text_center;
+	Paint p_text_edge;
 
 	Handler handler = new Handler();
 
@@ -38,13 +38,13 @@ public class P5RemoteServerView extends View implements
 
 		p_default = new Paint();
 
-		p_text_white = new Paint();
-		p_text_white.setColor(Color.WHITE);
-		p_text_white.setTypeface(Typeface.DEFAULT_BOLD);
+		p_text_center = new Paint();
+		p_text_center.setColor(Color.WHITE);
+		p_text_center.setTypeface(Typeface.DEFAULT_BOLD);
 
-		p_text_black = new Paint();
-		p_text_black.setColor(Color.BLACK);
-		p_text_black.setTypeface(Typeface.DEFAULT_BOLD);
+		p_text_edge = new Paint();
+		p_text_edge.setColor(Color.BLACK);
+		p_text_edge.setTypeface(Typeface.DEFAULT_BOLD);
 
 		guesture_listener = new P5RemoteServerViewGuestureListener(this);
 		gesture_detector = new GestureDetector(context, guesture_listener);
@@ -72,9 +72,14 @@ public class P5RemoteServerView extends View implements
 		boolean rv = remote_server.start();
 
 		if (rv == false) {
-			Toast.makeText(getContext(), "listen port failed...port="
-					+ remote_server.getLietenPort(), Toast.LENGTH_LONG).show();
+			Toast.makeText(
+					getContext(),
+					"listen port failed...port="
+							+ remote_server.getLietenPort(), Toast.LENGTH_LONG)
+					.show();
 		}
+		
+		handler.post(this);
 	}
 
 	public void stop() {
@@ -97,8 +102,8 @@ public class P5RemoteServerView extends View implements
 
 	@Override
 	public void onDraw(Canvas canvas) {
-
 		drawBitmap(canvas);
+		drawConnectionStatus(canvas);
 		drawDebugInfo(canvas);
 	}
 
@@ -136,30 +141,42 @@ public class P5RemoteServerView extends View implements
 		canvas.drawBitmap(bitmap, src, dst, p_default);
 	}
 
+	private void drawConnectionStatus(Canvas canvas) {
+		if (!remote_server.isActive()) {
+			long t = System.currentTimeMillis() / 1000;
+			if (t % 2 < 1) {
+				drawText(canvas, 10, getHeight() - 40, 40, Color.RED,
+						"client is not connected...");
+			}
+		}
+	}
+
 	private void drawDebugInfo(Canvas canvas) {
 		if (!debug)
 			return;
 
 		int size = 42;
-		drawText(canvas, 10, 30 + size * 0, size,
+		drawText(canvas, 10, 30 + size * 0, size, Color.WHITE,
 				"p5_remote_server for android");
-		drawText(canvas, 30, 30 + size * 1, size, "ip address = "
+		drawText(canvas, 30, 30 + size * 1, size, Color.WHITE, "ip address = "
 				+ getIpAddress());
-		drawText(canvas, 30, 30 + size * 2, size, "listen port = "
+		drawText(canvas, 30, 30 + size * 2, size, Color.WHITE, "listen port = "
 				+ remote_server.getLietenPort());
 	}
 
-	public void drawText(Canvas canvas, float x, float y, int size, String msg) {
-		p_text_white.setTextSize(size);
-		p_text_black.setTextSize(size);
+	public void drawText(Canvas canvas, float x, float y, int size, int color,
+			String msg) {
+		p_text_center.setColor(color);
+		p_text_center.setTextSize(size);
+		p_text_edge.setTextSize(size);
 
 		for (int dy = -2; dy <= 2; dy += 2) {
 			for (int dx = -2; dx <= 2; dx += 2) {
-				canvas.drawText(msg, x + dx, y + dy, p_text_black);
+				canvas.drawText(msg, x + dx, y + dy, p_text_edge);
 			}
 		}
 
-		canvas.drawText(msg, x, y, p_text_white);
+		canvas.drawText(msg, x, y, p_text_center);
 	}
 
 	private String getIpAddress() {
@@ -181,6 +198,12 @@ public class P5RemoteServerView extends View implements
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		return gesture_detector.onTouchEvent(event);
+	}
+
+	@Override
+	public void run() {
+		invalidate();
+		handler.postDelayed(this, 1000);
 	}
 }
 
