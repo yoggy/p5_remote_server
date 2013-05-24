@@ -11,3 +11,4 @@ Google Play URL
 
 demo movie
   * http://www.youtube.com/watch?v=Tp_QE1bU3sk
+  * ![ScreenShot](https://raw.github.com/yoggy/p5_remote_server/master/movie_screenshot.jpg)(http://youtu.be/Tp_QE1bU3sk)
